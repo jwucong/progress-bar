@@ -252,10 +252,10 @@ class JwcProgress {
 				exec.call(that, conf.onEnd);
 			}
 		};
-		const runer = animation(false);
+		const runner = animation(false);
 		this.waker = function() {
 			this.running = true;
-			runer(time, next);
+			runner(time, next);
 		};
 		this.waker();
 		exec.call(that, conf.onStart);
@@ -288,6 +288,10 @@ class JwcProgress {
 	}
 
 	fadeIn(duration, callback) {
+		if (isFunction(duration)) {
+			callback = duration;
+			duration = undefined;
+		}
 		const el = this.$el;
 		if (!el || el.style.display !== 'none') {
 			return this;
@@ -310,12 +314,16 @@ class JwcProgress {
 			opacity < 1 && setOpacity(1);
 			exec.call(that, callback);
 		};
-		const runer = animation();
-		runer(time, next, end);
+		const runner = animation();
+		runner(time, next, end);
 		return this;
 	}
 
 	fadeOut(duration, callback) {
+		if (isFunction(duration)) {
+			callback = duration;
+			duration = undefined;
+		}
 		const el = this.$el;
 		if (!el || el.style.display === 'none') {
 			return this;
@@ -339,12 +347,12 @@ class JwcProgress {
 			el.style.display = 'none';
 			exec.call(that, callback);
 		};
-		const runer = animation();
-		runer(time, next, end);
+		const runner = animation();
+		runner(time, next, end);
 		return this;
 	}
 
-	destory() {
+	destroy() {
 		if (this.$el) {
 			this.$el.parentNode.removeChild(this.$el);
 		}
@@ -382,13 +390,5 @@ const rewriteApi = function() {
 };
 
 rewriteApi();
-
-const pr = new JwcProgress({
-	// template: '.a'
-});
-
-pr.start().end();
-
-console.log(pr);
 
 export default JwcProgress;

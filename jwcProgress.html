@@ -23,6 +23,18 @@
       transform: translateY(-50%);
     }
   </style>
+  <script src="./dist/jwcProgress.js"></script>
+  <script>
+    var progress = new JwcProgress({
+      onEnd: function () {
+        this.fadeOut(this.destroy);
+      }
+    });
+    progress.start()
+    window.onload = function () {
+      progress.end()
+    }
+  </script>
 </head>
 <body>
 <div class="all-container">
