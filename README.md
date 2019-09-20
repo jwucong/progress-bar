@@ -54,23 +54,24 @@ jwcProgress.start().end();
 ```javascript
 const jwcProgress = new JwcProgress(options)
 ```
-**options**\<Object>  
-| key   | type  | default | remarks |  
-| :---- | :---- | :----   | :----   |  
-| template | String|HTMLElement | '' | Custom loading html |  
-| container | String|HTMLElement | body | loading container |  
-| containerStyle | Object | null | container style |  
-| customClass | String | '' | custom classname for loading |  
-| classPrefix | String | jwc | classname prefix |  
-| inlineStyle | Boolean | true | use inline style |  
-| duration | Number | 1500 | minimum duration for loading (ms) |  
-| timeout | Number | 0 | loading timeout (ms) |  
-| slowRange | String | '85-96' | within this range, progress is extremely slow |  
-| stopAt | Number | 99 | the progress stops here |  
-| onInited | Function | null | triggered after initialization |  
-| onStart | Function | null | triggered after the start |  
-| onProgress | Function | null | triggered when progress changes, callback function receive a parameter to indicate the current progress |  
-| onEnd | Function | null | triggered after the end |  
+**options**\<Object\>
+
+| key   | type  | default | remarks |
+| :--- | :--- | :---  | :---   |
+| template | String,HTMLElement | "" | Custom loading html |
+| container | String,HTMLElement | body | loading container |
+| containerStyle | Object | null | container style |
+| customClass | String | "" | custom classname for loading |
+| classPrefix | String | jwc | classname prefix |
+| inlineStyle | Boolean | true | use inline style |
+| duration | Number | 1500 | minimum duration for loading (ms) |
+| timeout | Number | 0 | loading timeout (ms), 0 means no timeout is set |
+| slowRange | String | "85-96" | within this range, progress is extremely slow |
+| stopAt | Number | 99 | the progress stops here |
+| onInited | Function | null | triggered after initialization |
+| onStart | Function | null | triggered after the start |
+| onProgress | Function | null | triggered when progress changes, callback function receive a parameter to indicate the current progress |
+| onEnd | Function | null | triggered after the end |
 | onTimeout | Function | null | triggered after timeout |  
 
 
