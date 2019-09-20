@@ -11,140 +11,164 @@ import {
 	defineReadOnlyProps
 } from './utils';
 
+function ready(callback) {
+	let timerId = null;
+	const that = this;
+	const template = (that.options.template + '').trim();
+	const isSelector = template && !/^\<[a-z]+.+\>$/i.test(this.template);
+	const container = () => getContainer(that.options.container);
+	const el = () => document.querySelector(template);
+	const exist = () => (isSelector ? el() && container() : container());
+	const done = function() {
+		timerId && clearInterval(timerId);
+		const temp = isSelector ? el().outerHTML : template;
+		exec.call(that, callback, container(), temp);
+	};
+	if (exist()) {
+		return done();
+	}
+	document.addEventListener('DOMContentLoaded', done, false);
+	timerId = setInterval(function() {
+		if (exist()) {
+			document.removeEventListener('DOMContentLoaded', done, false);
+			done();
+		}
+	}, 5);
+}
+
+const defaultOptions = {
+	template: '',
+	container: null,
+	containerStyle: null,
+	customClass: '',
+	classPrefix: 'jwc',
+	inlineStyle: true,
+	duration: 1500,
+	timeout: 0,
+	slowRange: '85-96',
+	stopAt: 99,
+	onInited: null,
+	onStart: null,
+	onProgress: null,
+	onEnd: null,
+	onTimeout: null
+};
+
 class JwcProgress {
 	constructor(options) {
-		const defaults = {
-			template: '',
-			container: null,
-			containerStyle: null,
-			customClass: '',
-			classPrefix: 'jwc',
-			inlineStyle: true,
-			duration: 1500,
-			timeout: 0,
-			slowRange: '85-96',
-			stopAt: 99,
-			onReady: null,
-			onInited: null,
-			onStart: null,
-			onProgress: null,
-			onDone: null,
-			onTimeout: null
-		};
 		defineReadOnlyProps.call(this, [
 			{ key: 'name', value: 'jwcProgress' },
 			{ key: 'version', value: '1.0.0' }
 		]);
-		this.options = Object.assign({}, defaults, options || {});
-		this.$wrapNode = null;
+		this.options = Object.assign({}, defaultOptions, options || {});
+		this.$el = null;
 		this.$lineNode = null;
 		this.$textNode = null;
+		this.$tempNode = null;
+		this.template = null;
+		this.container = null;
 		this.waker = null;
 		this.queue = [];
+		this.progress = 0;
 		this.running = false;
 		this.ended = false;
-		this.progress = 0;
-		this.container = getContainer(this.options.container) || null;
-		this.ready = Boolean(this.container);
-		if (!this.ready) {
-			const timerId = setInterval(() => {
-				const container = getContainer(this.options.container);
-				if (Boolean(container)) {
-					clearInterval(timerId);
-					this.ready = true;
-					this.container = container;
-					exec.call(this, this.options.onReady);
-					this.queue.forEach(item => item.api.apply(this, item.args), this);
-					this.queue = [];
-				}
-			}, 10);
-		}
+		this.ready = false;
 		this.init();
+		ready.call(this, function(container, template) {
+			this.ready = true;
+			this.container = container;
+			this.template = template;
+			this.queue.forEach(item => item.api.apply(this, item.args), this);
+			this.queue = [];
+		});
 	}
 
 	init() {
-		if (this.$wrapNode) {
+		if (this.$el) {
 			return this;
 		}
 		const conf = this.options;
+		const customCls = conf.customClass;
+		const inited = node => {
+			if (customCls && !node.classList.contains(customCls)) {
+				node.classList.add(customCls);
+			}
+			this.$el = node;
+			insertBefore(node, this.container);
+			exec.call(this, conf.onInited);
+			return this;
+		};
+		if (this.$tempNode) {
+			return inited(this.$tempNode);
+		}
+		if (this.template) {
+			const isHtml = /^\<[a-z]+.+\>$/i.test(this.template);
+			let div = document.createElement('div');
+			div.innerHTML = this.template;
+			return inited(isHtml ? div.firstElementChild : div);
+		}
 		const classList = ls => {
 			return [].concat(ls).map(item => conf.classPrefix + '-' + item);
 		};
-		const template = conf.template;
-		let node = null;
-		if (template) {
-			const pattern = /^\<[a-z]+\>[^<]+\>$/;
-			let div = document.createElement('div');
-			div.innerHTML = template;
-			node = pattern.test(template) ? div.firstElementChild : div;
-		} else {
-			const css = style => (conf.inlineStyle ? style : null);
-			const wrapCss = Object.assign(
-				{
-					position: 'fixed',
-					top: 0,
-					right: 0,
-					bottom: 0,
-					left: 0,
-					zIndex: 999,
-					backgroundColor: '#fff'
-				},
-				conf.containerStyle
-			);
-			const wrapper = createElement(
-				classList('progress-container'),
-				css(wrapCss)
-			);
-			const lineBox = createElement(
-				classList('progressbar-full'),
-				css({
-					position: 'absolute',
-					top: '50%',
-					left: 0,
-					width: '100%',
-					height: '1px',
-					overflow: 'hidden'
-				})
-			);
-			const line = createElement(
-				classList('progressbar-now'),
-				css({
-					position: 'absolute',
-					top: 0,
-					left: 0,
-					width: '100%',
-					height: 0,
-					borderTop: '1px solid #000',
-					transform: 'scaleY(0.5) translateX(-100%)'
-				})
-			);
-			const value = createElement(
-				classList('progress-val'),
-				css({
-					position: 'absolute',
-					bottom: '35px',
-					left: 0,
-					width: '100%',
-					textAlign: 'center',
-					fontSize: '12px',
-					color: '#999'
-				}),
-				'0%'
-			);
-			lineBox.appendChild(line);
-			wrapper.appendChild(lineBox);
-			wrapper.appendChild(value);
-			node = wrapper;
-			this.$lineNode = line;
-			this.$textNode = value;
-		}
-		if (conf.customClass && !node.classList.contains(conf.customClass)) {
-			node.classList.add(conf.customClass);
-		}
-		this.$wrapNode = node;
-		insertBefore(this.$wrapNode, this.container);
-		exec.call(this, conf.onInited);
-		return this;
+		const css = style => (conf.inlineStyle ? style : null);
+		const wrapCss = Object.assign(
+			{
+				position: 'fixed',
+				top: 0,
+				right: 0,
+				bottom: 0,
+				left: 0,
+				zIndex: 999,
+				backgroundColor: '#fff'
+			},
+			conf.containerStyle
+		);
+		const wrapper = createElement(
+			classList('progress-container'),
+			css(wrapCss)
+		);
+		const lineBox = createElement(
+			classList('progressbar-full'),
+			css({
+				position: 'absolute',
+				top: '50%',
+				left: 0,
+				width: '100%',
+				height: '1px',
+				overflow: 'hidden'
+			})
+		);
+		const line = createElement(
+			classList('progressbar-now'),
+			css({
+				position: 'absolute',
+				top: 0,
+				left: 0,
+				width: '100%',
+				height: 0,
+				borderTop: '1px solid #000',
+				transform: 'scaleY(0.5) translateX(-100%)'
+			})
+		);
+		const value = createElement(
+			classList('progress-val'),
+			css({
+				position: 'absolute',
+				bottom: '35px',
+				left: 0,
+				width: '100%',
+				textAlign: 'center',
+				fontSize: '12px',
+				color: '#999'
+			}),
+			'0%'
+		);
+		lineBox.appendChild(line);
+		wrapper.appendChild(lineBox);
+		wrapper.appendChild(value);
+		this.$lineNode = line;
+		this.$textNode = value;
+		return inited(wrapper);
 	}
 
 	setProgress(value) {
@@ -225,7 +249,7 @@ class JwcProgress {
 				stop();
 				that.running = false;
 				that.waker = null;
-				exec.call(that, conf.onDone);
+				exec.call(that, conf.onEnd);
 			}
 		};
 		const runer = animation(false);
@@ -238,7 +262,7 @@ class JwcProgress {
 		return this;
 	}
 
-	done() {
+	end() {
 		this.ended = true;
 		exec.call(this, this.waker);
 		this.waker = null;
@@ -246,25 +270,25 @@ class JwcProgress {
 	}
 
 	show() {
-		if (!this.$wrapNode) {
+		if (!this.$el) {
 			return this;
 		}
-		this.$wrapNode.style.opacity = 1;
-		this.$wrapNode.style.display = 'block';
+		this.$el.style.opacity = 1;
+		this.$el.style.display = 'block';
 		return this;
 	}
 
 	hide() {
-		if (!this.$wrapNode) {
+		if (!this.$el) {
 			return this;
 		}
-		this.$wrapNode.style.opacity = 0;
-		this.$wrapNode.style.display = 'none';
+		this.$el.style.opacity = 0;
+		this.$el.style.display = 'none';
 		return this;
 	}
 
 	fadeIn(duration, callback) {
-		const el = this.$wrapNode;
+		const el = this.$el;
 		if (!el || el.style.display !== 'none') {
 			return this;
 		}
@@ -292,7 +316,7 @@ class JwcProgress {
 	}
 
 	fadeOut(duration, callback) {
-		const el = this.$wrapNode;
+		const el = this.$el;
 		if (!el || el.style.display === 'none') {
 			return this;
 		}
@@ -320,11 +344,11 @@ class JwcProgress {
 		return this;
 	}
 
-	remove() {
-		if (this.$wrapNode) {
-			this.$wrapNode.parentNode.removeChild(this.$wrapNode);
+	destory() {
+		if (this.$el) {
+			this.$el.parentNode.removeChild(this.$el);
 		}
-		this.$wrapNode = null;
+		this.$el = null;
 		this.$lineNode = null;
 		this.$textNode = null;
 		this.progress = 0;
@@ -358,5 +382,13 @@ const rewriteApi = function() {
 };
 
 rewriteApi();
+
+const pr = new JwcProgress({
+	// template: '.a'
+});
+
+pr.start().end();
+
+console.log(pr);
 
 export default JwcProgress;
