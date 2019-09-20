@@ -67,7 +67,7 @@ const jwcProgress = new JwcProgress(options)
 | duration | Number | 1500 | minimum duration for loading (ms) |
 | timeout | Number | 0 | loading timeout (ms), 0 means no timeout is set |
 | slowRange | String | "85-96" | within this range, progress is extremely slow |
-| stopAt | Number | 99 | the progress stops here |
+| stopAt | Number | 99 | the progress stops here before call end() |
 | onInited | Function | null | triggered after initialization |
 | onStart | Function | null | triggered after the start |
 | onProgress | Function | null | triggered when progress changes, callback function receive a parameter to indicate the current progress |
